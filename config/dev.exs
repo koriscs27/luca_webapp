@@ -1,11 +1,31 @@
 import Config
 
+read_secret = fn path ->
+  case File.read(path) do
+    {:ok, contents} -> String.trim(contents)
+    _ -> nil
+  end
+end
+
+db_user = System.get_env("POSTGRES_USER") || "postgres"
+db_password_file = System.get_env("POSTGRES_PASSWORD_FILE")
+
+db_password =
+  System.get_env("POSTGRES_PASSWORD") ||
+    if(db_password_file, do: read_secret.(db_password_file), else: nil) ||
+    "postgres"
+
+db_host = System.get_env("POSTGRES_HOST") || "localhost"
+db_name = System.get_env("POSTGRES_DB") || "luca_webapp_dev"
+db_port = System.get_env("POSTGRES_PORT") || "5432"
+
 # Configure your database
 config :luca_webapp, LucaWebapp.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "luca_webapp_dev",
+  username: db_user,
+  password: db_password,
+  hostname: db_host,
+  database: db_name,
+  port: String.to_integer(db_port),
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -17,9 +37,14 @@ config :luca_webapp, LucaWebapp.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :luca_webapp, LucaWebappWeb.Endpoint,
-  # Binding to loopback ipv4 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
+  # Bind to all interfaces when running in Docker.
+  http: [
+    ip:
+      case System.get_env("PHX_SERVER_IP") do
+        "0.0.0.0" -> {0, 0, 0, 0}
+        _ -> {127, 0, 0, 1}
+      end
+  ],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
@@ -58,12 +83,12 @@ config :luca_webapp, LucaWebappWeb.Endpoint,
     web_console_logger: true,
     patterns: [
       # Static assets, except user uploads
-      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
+      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$",
       # Gettext translations
-      ~r"priv/gettext/.*\.po$"E,
+      ~r"priv/gettext/.*\.po$",
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/luca_webapp_web/router\.ex$"E,
-      ~r"lib/luca_webapp_web/(controllers|live|components)/.*\.(ex|heex)$"E
+      ~r"lib/luca_webapp_web/router\.ex$",
+      ~r"lib/luca_webapp_web/(controllers|live|components)/.*\.(ex|heex)$"
     ]
   ]
 

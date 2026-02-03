@@ -1,15 +1,33 @@
 import Config
 
+read_secret = fn path ->
+  case File.read(path) do
+    {:ok, contents} -> String.trim(contents)
+    _ -> nil
+  end
+end
+
+db_user = System.get_env("POSTGRES_USER") || "postgres"
+db_password_file = System.get_env("POSTGRES_PASSWORD_FILE")
+
+db_password =
+  System.get_env("POSTGRES_PASSWORD") ||
+    if(db_password_file, do: read_secret.(db_password_file), else: nil) ||
+    "postgres"
+
+db_host = System.get_env("POSTGRES_HOST") || "localhost"
+db_name = "luca_webapp_test#{System.get_env("MIX_TEST_PARTITION")}"
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :luca_webapp, LucaWebapp.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "luca_webapp_test#{System.get_env("MIX_TEST_PARTITION")}",
+  username: db_user,
+  password: db_password,
+  hostname: db_host,
+  database: db_name,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 

@@ -24,12 +24,35 @@ config :luca_webapp, LucaWebappWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
 if config_env() == :prod do
+  read_secret = fn path ->
+    case File.read(path) do
+      {:ok, contents} -> String.trim(contents)
+      _ -> nil
+    end
+  end
+
+  password_file = System.get_env("POSTGRES_PASSWORD_FILE")
+
+  db_password =
+    System.get_env("POSTGRES_PASSWORD") ||
+      if(password_file, do: read_secret.(password_file), else: nil) ||
+      ""
+
   database_url =
     System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
+      if System.get_env("POSTGRES_HOST") do
+        db_user = System.get_env("POSTGRES_USER") || "postgres"
+        db_host = System.get_env("POSTGRES_HOST")
+        db_port = System.get_env("POSTGRES_PORT") || "5432"
+        db_name = System.get_env("POSTGRES_DB") || "luca_webapp"
+
+        "ecto://#{db_user}:#{db_password}@#{db_host}:#{db_port}/#{db_name}"
+      else
+        raise """
+        environment variable DATABASE_URL is missing.
+        For example: ecto://USER:PASS@HOST/DATABASE
+        """
+      end
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
