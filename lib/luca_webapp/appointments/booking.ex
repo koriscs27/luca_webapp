@@ -3,9 +3,13 @@ defmodule LucaWebapp.Appointments.Booking do
 
   import Ecto.Changeset
 
+  @statuses ["booking", "booked", "rejected"]
+
   schema "bookings" do
+    field :booking_id, :string
     field :name, :string
     field :appointment_type, :string
+    field :status, :string
     field :starts_at, :utc_datetime
     field :ends_at, :utc_datetime
 
@@ -20,10 +24,27 @@ defmodule LucaWebapp.Appointments.Booking do
     |> validate_length(:appointment_type, max: 200)
     |> validate_starts_before_ends()
     |> check_constraint(:ends_at, name: :bookings_ends_after_starts)
-    |> exclusion_constraint(:starts_at,
-      name: :bookings_no_overlap,
-      message: "overlaps with another booking"
-    )
+    |> check_constraint(:status, name: :bookings_status_allowed)
+    |> unique_constraint(:booking_id)
+  end
+
+  def add_overlap_error(changeset) do
+    add_error(changeset, :starts_at, "overlaps with another booking")
+  end
+
+  def put_initial_state(changeset) do
+    changeset
+    |> put_change(:booking_id, Ecto.UUID.generate())
+    |> put_change(:status, "booking")
+    |> validate_required([:booking_id, :status])
+    |> validate_inclusion(:status, @statuses)
+  end
+
+  def status_changeset(booking, status) do
+    booking
+    |> change(status: status)
+    |> validate_required([:status])
+    |> validate_inclusion(:status, @statuses)
   end
 
   defp validate_starts_before_ends(changeset) do

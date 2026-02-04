@@ -7,16 +7,27 @@ defmodule LucaWebapp.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      LucaWebappWeb.Telemetry,
-      LucaWebapp.Repo,
-      {DNSCluster, query: Application.get_env(:luca_webapp, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: LucaWebapp.PubSub},
-      # Start a worker by calling: LucaWebapp.Worker.start_link(arg)
-      # {LucaWebapp.Worker, arg},
-      # Start to serve requests, typically the last entry
-      LucaWebappWeb.Endpoint
-    ]
+    booking_cleanup_children =
+      if Application.get_env(:luca_webapp, :booking_cleanup_enabled, true) do
+        [LucaWebapp.Appointments.StalePendingBookingsCleaner]
+      else
+        []
+      end
+
+    children =
+      [
+        LucaWebappWeb.Telemetry,
+        LucaWebapp.Repo,
+        {DNSCluster, query: Application.get_env(:luca_webapp, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: LucaWebapp.PubSub}
+        # Start a worker by calling: LucaWebapp.Worker.start_link(arg)
+        # {LucaWebapp.Worker, arg}
+      ] ++
+        booking_cleanup_children ++
+        [
+          # Start to serve requests, typically the last entry
+          LucaWebappWeb.Endpoint
+        ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

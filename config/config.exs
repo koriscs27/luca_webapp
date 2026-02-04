@@ -9,7 +9,10 @@ import Config
 
 config :luca_webapp,
   ecto_repos: [LucaWebapp.Repo],
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  booking_cleanup_enabled: true,
+  booking_stale_after_seconds: 600,
+  pending_booking_cleanup_interval_ms: :timer.minutes(10)
 
 # Configure the endpoint
 config :luca_webapp, LucaWebappWeb.Endpoint,
