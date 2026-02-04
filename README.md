@@ -25,7 +25,17 @@ Run:
 docker compose --profile prod up --build app_prod
 ```
 
-Set `SECRET_KEY_BASE` to a secure value before using in production.
+Before running in production mode, create these secret files:
+
+1. `secrets/postgres_password`
+2. `secrets/secret_key_base`
+
+Generate a secure `SECRET_KEY_BASE` with:
+```
+mix phx.gen.secret
+```
+
+Then put the generated value on a single line in `secrets/secret_key_base`.
 
 To start your Phoenix server:
 

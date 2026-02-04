@@ -31,11 +31,18 @@ if config_env() == :prod do
     end
   end
 
-  password_file = System.get_env("POSTGRES_PASSWORD_FILE")
+  env_or_file = fn env_name ->
+    file_env_name = "#{env_name}_FILE"
+
+    System.get_env(env_name) ||
+      case System.get_env(file_env_name) do
+        nil -> nil
+        path -> read_secret.(path)
+      end
+  end
 
   db_password =
-    System.get_env("POSTGRES_PASSWORD") ||
-      if(password_file, do: read_secret.(password_file), else: nil) ||
+    env_or_file.("POSTGRES_PASSWORD") ||
       ""
 
   database_url =
@@ -70,7 +77,7 @@ if config_env() == :prod do
   # to check this value into version control, so we use an environment
   # variable instead.
   secret_key_base =
-    System.get_env("SECRET_KEY_BASE") ||
+    env_or_file.("SECRET_KEY_BASE") ||
       raise """
       environment variable SECRET_KEY_BASE is missing.
       You can generate one by calling: mix phx.gen.secret
